@@ -1,11 +1,20 @@
-// App raiz. El enrutado y las paginas completas se implementan en la Fase 5.
-function App() {
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Header from './components/Header'
+import HomePage from './pages/HomePage'
+import SettingsPage from './pages/SettingsPage'
+
+export default function App() {
   return (
-    <div className="app">
-      <h1>Extractor de Facturas de Vehiculos</h1>
-      <p>Setup inicial completo. Las funcionalidades se implementan por fases.</p>
-    </div>
+    <BrowserRouter>
+      <div className="layout">
+        <Header />
+        <main className="main">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
   )
 }
-
-export default App
