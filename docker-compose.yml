@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app
+      - sqlite_data:/app/data
+      - ./server/uploads:/app/uploads
+      - ./server/lookup_tables:/app/lookup_tables
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_PATH=/app/data/app.db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  sqlite_data:
