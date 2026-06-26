@@ -33,10 +33,27 @@ def create_app():
     def health():
         return jsonify({"status": "ok"})
 
+    # Inicializar BD y cargar planillas semilla.
+    with app.app_context():
+        _init_database(app)
+
     # Los blueprints se registran en fases posteriores (Fase 4).
     _register_blueprints(app)
 
     return app
+
+
+def _init_database(app):
+    """Crea las tablas y carga planillas de colores si la BD esta vacia."""
+    try:
+        from models import database
+        from services import lookup_service
+
+        database.init_db()
+        lookup_service.seed_from_folder(app.config["LOOKUP_FOLDER"])
+    except ImportError:
+        # Durante Fase 1 los modulos aun no existen.
+        pass
 
 
 def _register_blueprints(app):
