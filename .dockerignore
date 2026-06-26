@@ -1,7 +1,11 @@
 node_modules/
 venv/
+.venv/
 __pycache__/
 *.pyc
 .git/
 *.db
 .env
+client/dist/
+server/uploads/*
+!server/uploads/.gitkeep
