@@ -98,21 +98,50 @@ def detect_table_brand(filename):
     return AUTOPAK
 
 
+def _is_model_file(filename):
+    return "modelo" in filename.lower()
+
+
 def seed_from_folder(folder):
-    """Carga planillas presentes en una carpeta si las tablas estan vacias.
+    """Carga planillas de colores presentes en una carpeta si la tabla esta vacia.
     Util para el primer arranque (datos semilla)."""
     import glob
     import os
 
-    if database.count_color_lookup() > 0:
+    if database.count_color_lookup() == 0:
+        for path in glob.glob(os.path.join(folder, "*.xlsx")):
+            name = os.path.basename(path)
+            if _is_model_file(name):
+                continue  # las planillas de modelos se cargan aparte
+            brand = detect_table_brand(name)
+            try:
+                load_colors_from_file(path, brand)
+            except Exception:
+                # Una planilla invalida no debe impedir el arranque.
+                continue
+
+    seed_models_from_folder(folder)
+
+
+def seed_models_from_folder(folder):
+    """Carga planillas de modelos (archivos con 'modelo' en el nombre) si la
+    tabla model_lookup esta vacia."""
+    import glob
+    import os
+
+    if database.get_model_lookup():
         return
+    all_entries = []
     for path in glob.glob(os.path.join(folder, "*.xlsx")):
-        brand = detect_table_brand(os.path.basename(path))
-        try:
-            load_colors_from_file(path, brand)
-        except Exception:
-            # Una planilla invalida no debe impedir el arranque.
+        name = os.path.basename(path)
+        if not _is_model_file(name):
             continue
+        try:
+            all_entries.extend(read_model_xlsx(path))
+        except Exception:
+            continue
+    if all_entries:
+        database.replace_model_lookup(None, all_entries)
 
 
 # --------------------------- resolucion de color -------------------------- #
@@ -193,3 +222,50 @@ def resolve_color(brand, color_text, raw_text=""):
     if brand == BYD:
         return match_color_byd(raw_text or color_text)
     return match_color_autopak(color_text)
+
+
+# --------------------------- resolucion de modelo ------------------------- #
+
+# Umbral minimo de similitud (Jaccard de tokens) para aceptar un match no exacto.
+MODEL_MATCH_THRESHOLD = 0.6
+
+
+def _tokens(text):
+    return {t for t in re.split(r"[^A-Z0-9]+", normalize(text)) if t}
+
+
+def resolve_model(model_name, brand=None):
+    """Busca el codigo de modelo en la planilla model_lookup a partir del
+    nombre/descripcion extraido de la factura.
+
+    Estrategia conservadora:
+    1. Coincidencia exacta normalizada.
+    2. Mejor similitud por tokens (Jaccard) si supera MODEL_MATCH_THRESHOLD.
+    Devuelve (model_name_planilla, model_code) o (None, None).
+    """
+    if not model_name:
+        return None, None
+
+    entries = database.get_model_lookup(brand) if brand else database.get_model_lookup()
+    if not entries:
+        return None, None
+
+    target_norm = normalize(model_name)
+    target_tokens = _tokens(model_name)
+
+    best = None  # (score, name, code)
+    for e in entries:
+        cand_name = e["model_name"]
+        cand_norm = normalize(cand_name)
+        if cand_norm == target_norm:
+            return cand_name, e["model_code"]
+        cand_tokens = _tokens(cand_name)
+        if not cand_tokens or not target_tokens:
+            continue
+        score = len(target_tokens & cand_tokens) / len(target_tokens | cand_tokens)
+        if best is None or score > best[0]:
+            best = (score, cand_name, e["model_code"])
+
+    if best and best[0] >= MODEL_MATCH_THRESHOLD:
+        return best[1], best[2]
+    return None, None
