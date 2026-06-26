@@ -68,6 +68,28 @@ def load_colors_from_file(filepath, brand):
     return len(entries)
 
 
+def read_model_xlsx(filepath):
+    """Lee filas (model_name, model_code) de una planilla de modelos.
+    Convencion: columna A = codigo, columna B = nombre. Funcionalidad a futuro."""
+    wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+    ws = wb.active
+    entries = []
+    for row in ws.iter_rows(values_only=True):
+        if not row or len(row) < 2:
+            continue
+        code, name = row[0], row[1]
+        if code is None or name is None:
+            continue
+        code_s, name_s = str(code).strip(), str(name).strip()
+        if not code_s or not name_s:
+            continue
+        if normalize(code_s) in ("CODIGO", "CODIGO DE MODELO"):
+            continue
+        entries.append((name_s, code_s))
+    wb.close()
+    return entries
+
+
 def detect_table_brand(filename):
     """Decide a que tabla pertenece una planilla por su nombre de archivo."""
     name = filename.lower()
