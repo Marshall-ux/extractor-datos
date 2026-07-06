@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    ports:
-      - "5000:5000"
     volumes:
       - ./server:/app
       - sqlite_data:/app/data
@@ -13,15 +11,23 @@ services:
     environment:
       - FLASK_ENV=development
       - DATABASE_PATH=/app/data/app.db
-
+    networks:
+      - default
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "80:80"
+      - "8091:80"
     depends_on:
       - backend
-
+    networks:
+      - default
+      - portal
 volumes:
   sqlite_data:
+networks:
+  default:
+  portal:
+    external: true
+    name: portal-interno_portal-net
