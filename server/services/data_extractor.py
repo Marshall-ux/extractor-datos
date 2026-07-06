@@ -103,4 +103,11 @@ def extract_from_pdf(filepath, filename):
     if extractor.brand == "BYD" and not result.get("model_name"):
         result["model_name"] = _byd_model_name(desc_line, result.get("color_name"))
 
+    # Resolucion del codigo de modelo en la planilla cuando la factura no lo trae
+    # (Nissan, Honda): se busca por el nombre/descripcion del modelo.
+    if not result.get("model_code") and result.get("model_name"):
+        _, model_code = lookup_service.resolve_model(result["model_name"])
+        if model_code:
+            result["model_code"] = model_code
+
     return _assess(result)

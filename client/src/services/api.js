@@ -72,3 +72,16 @@ export async function uploadColors(file, brand) {
   const res = await fetch(`${BASE}/lookup-tables/colors`, { method: 'POST', body: form })
   return handle(res)
 }
+
+export async function getModels(brand) {
+  const url = brand ? `${BASE}/lookup-tables/models?brand=${brand}` : `${BASE}/lookup-tables/models`
+  return handle(await fetch(url))
+}
+
+export async function uploadModels(file, brand) {
+  const form = new FormData()
+  form.append('file', file)
+  if (brand) form.append('brand', brand)
+  const res = await fetch(`${BASE}/lookup-tables/models`, { method: 'POST', body: form })
+  return handle(res)
+}

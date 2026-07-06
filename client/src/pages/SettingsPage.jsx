@@ -1,4 +1,5 @@
 import LookupManager from '../components/LookupManager'
+import ModelManager from '../components/ModelManager'
 
 export default function SettingsPage() {
   return (
@@ -14,6 +15,7 @@ export default function SettingsPage() {
       </section>
 
       <LookupManager />
+      <ModelManager />
     </>
   )
 }
