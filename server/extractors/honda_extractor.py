@@ -15,7 +15,10 @@ class HondaExtractor(BaseExtractor):
         text = self.text
 
         r["vin"] = self.search(r"Nro Chasis:\s*(\S+)", text)
-        r["interno"] = self.compute_interno(r["vin"])
+        # INTERNO Honda: ultimos 6 digitos del "Equipo Nro:" (viene en la
+        # linea siguiente a la etiqueta). Fallback a VIN si no aparece.
+        equipo = self.search(r"Equipo Nro:\s*(\d+)", text)
+        r["interno"] = equipo[-6:] if equipo else self.compute_interno(r["vin"])
         r["engine_number"] = self.search(r"Nro Motor:\s*(\S+)", text)
         r["color_name"] = self.search(r"Color:\s*(.+)", text)
         # Nombre de modelo: preferir "Descripcion:", sino "Modelo:".

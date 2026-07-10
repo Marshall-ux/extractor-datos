@@ -5,7 +5,7 @@ import DataTable from '../components/DataTable'
 import ExportButton from '../components/ExportButton'
 import ProgressBar from '../components/ProgressBar'
 import {
-  getExtractions, uploadFiles, updateExtraction, deleteExtraction,
+  getExtractions, uploadFiles, updateExtraction, deleteExtraction, clearExtractions,
 } from '../services/api'
 
 export default function HomePage() {
@@ -62,6 +62,20 @@ export default function HomePage() {
     }
   }
 
+  async function handleClearAll() {
+    if (!confirm(
+      `¿Limpiar todo el historial? Se eliminarán ${rows.length} factura(s) analizada(s). ` +
+      'Esta acción no se puede deshacer.'
+    )) return
+    try {
+      await clearExtractions()
+      setRows([])
+      setSelected(new Set())
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   function toggle(id) {
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
@@ -101,7 +115,17 @@ export default function HomePage() {
               {reviewCount > 0 && <> · <span style={{ color: 'var(--warning)' }}>{reviewCount} para revisar</span></>}
             </div>
           </div>
-          <ExportButton ids={[...selected]} disabled={rows.length === 0} />
+          <div className="toolbar__actions">
+            <button
+              className="btn btn--ghost"
+              onClick={handleClearAll}
+              disabled={rows.length === 0}
+              title="Eliminar todas las facturas del historial"
+            >
+              🗑 Limpiar historial
+            </button>
+            <ExportButton ids={[...selected]} disabled={rows.length === 0} />
+          </div>
         </div>
 
         {rows.length === 0 ? (
