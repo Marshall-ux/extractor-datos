@@ -5,7 +5,7 @@ import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/extractor-datos">
       <div className="layout">
         <Header />
         <main className="main">
