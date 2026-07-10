@@ -19,7 +19,9 @@ class KiaExtractor(BaseExtractor):
 
         r["model_code"] = self.search(r"CODIGO DEMODELO:\s*(\S+)", text)
         r["vin"] = self.search(r"NUMERO DECHASIS:\s*([A-Z0-9]{17})", text)
-        r["interno"] = self.compute_interno(r["vin"])
+        # INTERNO KIA: figura como "IDV:". Fallback a VIN si no aparece.
+        idv = self.search(r"IDV:\s*(\S+)", text)
+        r["interno"] = idv or self.compute_interno(r["vin"])
         r["engine_number"] = self.search(r"NUMERO DEMOTOR:\s*(\S+)", text)
         # Color: en la linea que tiene "MODELO: COLOR:BLANCO CLARO".
         r["color_name"] = self.search(r"COLOR:\s*(.+)", text)

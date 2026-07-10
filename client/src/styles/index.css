@@ -195,6 +195,7 @@ a { color: var(--green-dark); text-decoration: none; }
   flex-wrap: wrap;
 }
 .toolbar__info { color: var(--text-soft); font-size: 0.95rem; }
+.toolbar__actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .data thead th {

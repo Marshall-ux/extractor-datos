@@ -128,6 +128,13 @@ def delete_extraction(extraction_id):
         return cur.rowcount > 0
 
 
+def delete_all_extractions():
+    """Borra todo el historial de extracciones. Devuelve la cantidad borrada."""
+    with get_connection() as conn:
+        cur = conn.execute("DELETE FROM extractions")
+        return cur.rowcount
+
+
 # ----------------------------- color_lookup ------------------------------- #
 
 def replace_color_lookup(brand, entries):
