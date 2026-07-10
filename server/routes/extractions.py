@@ -2,6 +2,7 @@
 Rutas CRUD de extracciones.
 
 GET    /api/extractions       - lista
+DELETE /api/extractions       - limpia todo el historial
 GET    /api/extractions/<id>  - detalle
 PUT    /api/extractions/<id>  - edicion manual
 DELETE /api/extractions/<id>  - eliminar
@@ -22,6 +23,13 @@ EDITABLE = [
 @extractions_bp.route("/extractions", methods=["GET"])
 def list_all():
     return jsonify(database.list_extractions())
+
+
+@extractions_bp.route("/extractions", methods=["DELETE"])
+def delete_all():
+    """Limpia todo el historial de facturas analizadas."""
+    count = database.delete_all_extractions()
+    return jsonify({"deleted": count})
 
 
 @extractions_bp.route("/extractions/<int:extraction_id>", methods=["GET"])

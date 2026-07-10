@@ -44,6 +44,11 @@ export async function deleteExtraction(id) {
   return handle(res)
 }
 
+export async function clearExtractions() {
+  const res = await fetch(`${BASE}/extractions`, { method: 'DELETE' })
+  return handle(res)
+}
+
 export async function exportExcel(ids) {
   const res = await fetch(`${BASE}/export`, {
     method: 'POST',
