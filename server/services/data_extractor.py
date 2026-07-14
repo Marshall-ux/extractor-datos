@@ -7,9 +7,18 @@ resolucion de color en planilla -> calculo de confianza/estado.
 Devuelve un dict listo para insertar en la tabla extractions.
 """
 import re
+from datetime import date
 
 from extractors import get_extractor
 from services import brand_detector, lookup_service, pdf_parser
+
+
+def _normalize_year(value):
+    """El anio se extrae como texto. Si la factura no lo trae (Nissan, Subaru,
+    Suzuki), se usa el anio en curso."""
+    if value and str(value).strip().isdigit():
+        return int(str(value).strip())
+    return date.today().year
 
 
 def _byd_model_name(desc_line, color_name):
@@ -64,6 +73,8 @@ def extract_from_pdf(filepath, filename):
         "vin": None,
         "interno": None,
         "engine_number": None,
+        "year": None,
+        "certificate": None,
         "is_hybrid": False,
         "is_electric": False,
         "color_name": None,
@@ -109,5 +120,7 @@ def extract_from_pdf(filepath, filename):
         _, model_code = lookup_service.resolve_model(result["model_name"])
         if model_code:
             result["model_code"] = model_code
+
+    result["year"] = _normalize_year(result.get("year"))
 
     return _assess(result)
