@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS extractions (
     vin TEXT,
     interno TEXT,
     engine_number TEXT,
+    year INTEGER,
+    certificate TEXT,
     is_hybrid BOOLEAN DEFAULT FALSE,
     is_electric BOOLEAN DEFAULT FALSE,
     color_name TEXT,
@@ -49,8 +51,15 @@ CREATE TABLE IF NOT EXISTS model_lookup (
 # Columnas editables/insertables de extractions (sin id ni timestamps).
 EXTRACTION_FIELDS = [
     "filename", "brand", "model_code", "model_name", "vin", "interno",
-    "engine_number", "is_hybrid", "is_electric", "color_name", "color_code",
-    "raw_text", "confidence", "status",
+    "engine_number", "year", "certificate", "is_hybrid", "is_electric",
+    "color_name", "color_code", "raw_text", "confidence", "status",
+]
+
+# Columnas agregadas despues de la version inicial: se aplican con ALTER TABLE
+# sobre bases ya existentes (el server tiene la BD en un volumen persistente).
+MIGRATIONS = [
+    ("year", "INTEGER"),
+    ("certificate", "TEXT"),
 ]
 
 
@@ -74,6 +83,10 @@ def get_connection():
 def init_db():
     with get_connection() as conn:
         conn.executescript(SCHEMA)
+        existing = {r["name"] for r in conn.execute("PRAGMA table_info(extractions)")}
+        for column, coltype in MIGRATIONS:
+            if column not in existing:
+                conn.execute(f"ALTER TABLE extractions ADD COLUMN {column} {coltype}")
 
 
 # ----------------------------- extractions -------------------------------- #

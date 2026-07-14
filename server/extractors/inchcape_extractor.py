@@ -30,6 +30,7 @@ class InchcapeExtractor(BaseExtractor):
         r["vin"] = self.search(r"Chasis:\s*(\S+)", text)
         r["interno"] = self.compute_interno(r["vin"])
         r["engine_number"] = self.search(r"Motor:\s*(\S+)", text)
+        r["certificate"] = self.search(r"Certificado\s*N.:\s*(\S+)", text)
         r["color_name"] = self.search(r"Color:\s*(.+)", text)
         r["model_name"] = self._model_name(text, r["model_code"])
         return r

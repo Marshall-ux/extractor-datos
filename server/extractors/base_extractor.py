@@ -42,6 +42,8 @@ class BaseExtractor:
             "vin": None,
             "interno": None,
             "engine_number": None,
+            "year": None,          # anio del vehiculo (si la factura lo trae)
+            "certificate": None,   # Nro. de certificado de fabrica
             "is_hybrid": False,
             "is_electric": False,
             "color_name": None,   # color crudo extraido (previo a lookup)

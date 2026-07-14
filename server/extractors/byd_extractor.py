@@ -37,6 +37,10 @@ class BydExtractor(BaseExtractor):
                 r["engine_number"] = electric[0].rstrip("/")
                 r["is_electric"] = True
 
+        # Anio: aparece pegado a la etiqueta "Modelo" del bloque de encabezados
+        # ("2025Modelo"). BYD no emite certificado de fabrica: queda sin valor.
+        r["year"] = self.search(r"(20\d{2})Modelo", text)
+
         # Linea de descripcion para derivar modelo y color (la final, mas limpia).
         r["_desc_line"] = self._description_line(text)
         return r

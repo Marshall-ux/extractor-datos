@@ -16,7 +16,8 @@ extractions_bp = Blueprint("extractions", __name__, url_prefix="/api")
 # Campos que el usuario puede editar manualmente desde la tabla.
 EDITABLE = [
     "brand", "model_code", "model_name", "vin", "interno", "engine_number",
-    "is_hybrid", "is_electric", "color_name", "color_code", "status",
+    "year", "certificate", "is_hybrid", "is_electric", "color_name",
+    "color_code", "status",
 ]
 
 
