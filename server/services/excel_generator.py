@@ -1,18 +1,46 @@
 """
-Generacion del Excel de salida con las 5 columnas requeridas.
+Generacion del Excel de salida (formato StImportarNeostar).
 
-Columnas: INTERNO | MODELO | Nº DE VIN | Nº DE MOTOR | CÓDIGO DE COLOR
-- INTERNO: ultimos 8 caracteres del VIN.
-- MODELO: codigo del modelo si existe, sino nombre del modelo.
-- Nº DE MOTOR: numero de motor (naftero en hibridos; electrico si solo electrico).
-- CÓDIGO DE COLOR: codigo resuelto en la planilla.
+Columnas: Marca | Modelo | Chasis | Motor | Año | Color | Ubicación |
+          Nro.Certificado | Interno
+
+- Marca: codigo interno de la marca (ver BRAND_CODES). Las marcas sin codigo
+  asignado todavia (KIA, SUBARU, SUZUKI) quedan vacias.
+- Modelo: codigo del modelo si existe, sino nombre del modelo.
+- Chasis: VIN.
+- Motor: numero de motor (naftero en hibridos; electrico si solo electrico).
+- Año: anio del vehiculo; si la factura no lo trae se usa el anio en curso.
+- Color: codigo de color resuelto en la planilla.
+- Ubicación: por ahora siempre 'FA' (Fabrica), porque en esta instancia todavia
+  no se conocen los arribos. Neostar lo reemplaza despues por el destino real
+  (RO, SF, GC, FU, RON, ROC).
+- Nro.Certificado: certificado de fabrica. Las facturas que no lo emiten (BYD)
+  quedan sin valor.
+- Interno: numero interno de la unidad.
 """
 import io
 
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 
-HEADERS = ["INTERNO", "MODELO", "Nº DE VIN", "Nº DE MOTOR", "CÓDIGO DE COLOR"]
+HEADERS = [
+    "Marca", "Modelo", "Chasis", "Motor", "Año", "Color", "Ubicación",
+    "Nro.Certificado", "Interno",
+]
+
+# Codigo de marca usado por Neostar en la planilla de importacion.
+BRAND_CODES = {
+    "HONDA": 31,
+    "NISSAN": 32,
+    "BYD": "BYD",
+}
+
+# Ubicacion fija en esta etapa: todas las unidades estan en fabrica.
+UBICACION_DEFAULT = "FA"
+
+
+def _brand_value(row):
+    return BRAND_CODES.get((row.get("brand") or "").upper(), "")
 
 
 def _model_value(row):
@@ -36,14 +64,18 @@ def build_excel(extractions):
         cell.alignment = center
 
     for i, row in enumerate(extractions, start=2):
-        ws.cell(row=i, column=1, value=row.get("interno") or "")
+        ws.cell(row=i, column=1, value=_brand_value(row))
         ws.cell(row=i, column=2, value=_model_value(row))
         ws.cell(row=i, column=3, value=row.get("vin") or "")
         ws.cell(row=i, column=4, value=row.get("engine_number") or "")
-        ws.cell(row=i, column=5, value=row.get("color_code") or "")
+        ws.cell(row=i, column=5, value=row.get("year") or "")
+        ws.cell(row=i, column=6, value=row.get("color_code") or "")
+        ws.cell(row=i, column=7, value=UBICACION_DEFAULT)
+        ws.cell(row=i, column=8, value=row.get("certificate") or "")
+        ws.cell(row=i, column=9, value=row.get("interno") or "")
 
     # Ancho de columnas aproximado al contenido.
-    widths = [14, 28, 22, 22, 18]
+    widths = [8, 28, 22, 22, 8, 10, 11, 20, 14]
     for col, width in enumerate(widths, start=1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = width
 

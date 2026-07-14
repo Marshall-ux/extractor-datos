@@ -8,8 +8,10 @@ const COLUMNS = [
   { key: 'vin', label: 'Nº VIN', editable: true },
   { key: 'interno', label: 'Interno', editable: false, width: 100 },
   { key: 'engine_number', label: 'Nº motor', editable: true },
+  { key: 'year', label: 'Año', editable: true, width: 80 },
   { key: 'color_name', label: 'Color', editable: true },
   { key: 'color_code', label: 'Cód. color', editable: true, width: 100 },
+  { key: 'certificate', label: 'Nº certificado', editable: true },
 ]
 
 // Campos cuyo vacio se resalta (datos clave que deberian existir).

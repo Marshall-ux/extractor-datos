@@ -20,6 +20,9 @@ class HondaExtractor(BaseExtractor):
         equipo = self.search(r"Equipo Nro:\s*(\d+)", text)
         r["interno"] = equipo[-6:] if equipo else self.compute_interno(r["vin"])
         r["engine_number"] = self.search(r"Nro Motor:\s*(\S+)", text)
+        r["year"] = self.search(r"A.o:\s*(\d{4})", text)
+        # Certificado: las facturas Honda vistas no lo traen; se extrae si aparece.
+        r["certificate"] = self.search(r"Certificado\s*(?:N.)?:\s*([\w\-/]+)", text)
         r["color_name"] = self.search(r"Color:\s*(.+)", text)
         # Nombre de modelo: preferir "Descripcion:", sino "Modelo:".
         r["model_name"] = (
