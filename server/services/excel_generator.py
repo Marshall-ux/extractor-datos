@@ -4,8 +4,7 @@ Generacion del Excel de salida (formato StImportarNeostar).
 Columnas: Marca | Modelo | Chasis | Motor | Año | Color | Ubicación |
           Nro.Certificado | Interno
 
-- Marca: codigo interno de la marca (ver BRAND_CODES). Las marcas sin codigo
-  asignado todavia (KIA, SUBARU, SUZUKI) quedan vacias.
+- Marca: codigo interno de la marca (ver BRAND_CODES).
 - Modelo: codigo del modelo si existe, sino nombre del modelo.
 - Chasis: VIN.
 - Motor: numero de motor (naftero en hibridos; electrico si solo electrico).
@@ -32,6 +31,9 @@ HEADERS = [
 BRAND_CODES = {
     "HONDA": 31,
     "NISSAN": 32,
+    "SUBARU": 34,
+    "SUZUKI": 22,
+    "KIA": 27,
     "BYD": "BYD",
 }
 
