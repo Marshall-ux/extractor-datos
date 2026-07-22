@@ -161,23 +161,93 @@ def _autopak_entries():
     ]
 
 
-def match_color_byd(raw_text):
-    """Resuelve color BYD buscando, dentro del texto completo de la factura,
-    la descripcion de la planilla (con '/' y '&' como espacios) que aparezca
-    como subcadena contigua. Se elige la coincidencia mas larga (mas especifica),
-    lo que distingue EXTERIOR/INTERIOR de INTERIOR/EXTERIOR.
-    Devuelve (color_name, color_code) o (None, None).
+def _byd_parts(color_name):
+    """Partes exterior/interior de una descripcion BYD ('PALLAS WHITE/BLACK'
+    -> ['PALLAS WHITE', 'BLACK']). '&' se trata como espacio."""
+    normalized = normalize(color_name).replace("&", " ")
+    return [re.sub(r"\s+", " ", p).strip()
+            for p in normalized.split("/") if p.strip()]
+
+
+def _match_parts_in_order(parts, norm_text):
+    """Verifica que las partes aparezcan en el texto en ese orden, en
+    posiciones distintas y sin superponerse. Devuelve el largo total
+    consumido, o None si alguna no encaja.
+
+    El chequeo de no superposicion evita falsos positivos: 'OBSIDIAN
+    BLACK/BLACK' no debe matchear un texto que solo dice 'OBSIDIAN BLACK'
+    (donde 'BLACK' esta contenido dentro de la otra parte).
     """
-    norm_text = re.sub(r"\s+", " ",
-                       normalize(raw_text).replace("/", " ").replace("&", " "))
+    cursor = 0
+    total = 0
+    for part in parts:
+        start = norm_text.find(part, cursor)
+        if start == -1:
+            return None
+        cursor = start + len(part)
+        total += len(part)
+    return total
+
+
+def _norm_for_search(text):
+    return re.sub(r"\s+", " ",
+                  normalize(text).replace("/", " ").replace("&", " "))
+
+
+def _best_match(candidates, text, reverse=False):
+    """Mejor entrada cuyas partes aparecen en orden dentro de text.
+    Gana la coincidencia mas larga (la mas especifica)."""
     best = None
-    for needle, name, code in _byd_entries():
-        if needle and needle in norm_text:
-            if best is None or len(needle) > best[0]:
-                best = (len(needle), name, code)
-    if best:
-        return best[1], best[2]
-    return None, None
+    for parts, name, code in candidates:
+        seq = list(reversed(parts)) if reverse else parts
+        total = _match_parts_in_order(seq, text)
+        if total is not None and (best is None or total > best[0]):
+            best = (total, name, code)
+    return (best[1], best[2]) if best else None
+
+
+def match_color_byd(raw_text, desc_line=None):
+    """Resuelve color BYD. Devuelve (color_name, color_code) o (None, None).
+
+    El color aparece en dos lugares y el ORDEN distingue combinaciones
+    opuestas ('PALLAS WHITE/BLACK' vs 'BLACK/PALLAS WHITE'):
+    - Linea de descripcion final, contigua y en orden exterior/interior:
+      'SHARK DMO GS PALLAS WHITE BLACK'.
+    - Grilla, con interior y exterior pegados y en orden invertido:
+      'BlackPallas White'.
+
+    El texto completo contiene ambos ordenes a la vez, asi que no permite
+    desempatar: por eso la linea de descripcion se busca por separado y
+    primero, por ser la fuente mas confiable.
+    """
+    combos, singles = [], []
+    for _, name, code in _byd_entries():
+        parts = _byd_parts(name)
+        if len(parts) > 1:
+            combos.append((parts, name, code))
+        elif parts:
+            singles.append((parts, name, code))
+
+    norm_text = _norm_for_search(raw_text)
+
+    # 1. Linea de descripcion: exterior/interior en el orden de la planilla.
+    if desc_line:
+        found = _best_match(combos, _norm_for_search(desc_line))
+        if found:
+            return found
+
+    # 2. Grilla: el mismo par pero invertido (interior pegado antes del exterior).
+    found = _best_match(combos, norm_text, reverse=True)
+    if found:
+        return found
+
+    # 3. Combinacion en orden directo en cualquier parte del texto.
+    found = _best_match(combos, norm_text)
+    if found:
+        return found
+
+    # 4. Un solo color (la planilla tambien tiene entradas sin interior).
+    return _best_match(singles, norm_text) or (None, None)
 
 
 def match_color_autopak(color_text):
@@ -216,11 +286,11 @@ def match_color_autopak(color_text):
     return None, None
 
 
-def resolve_color(brand, color_text, raw_text=""):
-    """Punto de entrada unico. Para BYD usa el texto completo; para el resto,
-    el color etiquetado extraido."""
+def resolve_color(brand, color_text, raw_text="", desc_line=None):
+    """Punto de entrada unico. Para BYD usa el texto completo mas la linea de
+    descripcion; para el resto, el color etiquetado extraido."""
     if brand == BYD:
-        return match_color_byd(raw_text or color_text)
+        return match_color_byd(raw_text or color_text, desc_line)
     return match_color_autopak(color_text)
 
 
