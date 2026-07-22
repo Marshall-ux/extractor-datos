@@ -1,7 +1,7 @@
 // Cliente de la API REST. En dev, Vite hace proxy de /api -> Flask:5000.
 // En produccion, Nginx hace el proxy.
 
-const BASE = '/api'
+const BASE = '/extractor-datos/api'
 
 async function handle(res) {
   if (!res.ok) {

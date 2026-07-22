@@ -102,7 +102,8 @@ def extract_from_pdf(filepath, filename):
 
     # Resolucion de color contra la planilla.
     matched_name, code = lookup_service.resolve_color(
-        extractor.brand, result.get("color_name"), result.get("raw_text", "")
+        extractor.brand, result.get("color_name"), result.get("raw_text", ""),
+        desc_line,
     )
     if code:
         result["color_code"] = code
