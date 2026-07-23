@@ -163,91 +163,94 @@ def _autopak_entries():
 
 def _byd_parts(color_name):
     """Partes exterior/interior de una descripcion BYD ('PALLAS WHITE/BLACK'
-    -> ['PALLAS WHITE', 'BLACK']). '&' se trata como espacio."""
+    -> ['PALLAS WHITE', 'BLACK']). '&' se trata como separador de parte."""
     normalized = normalize(color_name).replace("&", " ")
     return [re.sub(r"\s+", " ", p).strip()
             for p in normalized.split("/") if p.strip()]
 
 
-def _match_parts_in_order(parts, norm_text):
-    """Verifica que las partes aparezcan en el texto en ese orden, en
-    posiciones distintas y sin superponerse. Devuelve el largo total
-    consumido, o None si alguna no encaja.
+def _tok_list(text):
+    """Lista ordenada de tokens alfanumericos (conserva repetidos y orden)."""
+    return [t for t in re.split(r"[^A-Z0-9]+", normalize(text)) if t]
 
-    El chequeo de no superposicion evita falsos positivos: 'OBSIDIAN
-    BLACK/BLACK' no debe matchear un texto que solo dice 'OBSIDIAN BLACK'
-    (donde 'BLACK' esta contenido dentro de la otra parte).
-    """
-    cursor = 0
-    total = 0
+
+def _entry_token_seq(parts):
+    """Secuencia de tokens de una entrada, en orden exterior/interior."""
+    seq = []
     for part in parts:
-        start = norm_text.find(part, cursor)
-        if start == -1:
-            return None
-        cursor = start + len(part)
-        total += len(part)
-    return total
+        seq.extend(_tok_list(part))
+    return seq
 
 
-def _norm_for_search(text):
-    return re.sub(r"\s+", " ",
-                  normalize(text).replace("/", " ").replace("&", " "))
+def _subseq_len(entry_seq, text_toks):
+    """Cantidad de tokens de entry_seq presentes en text_toks como subsecuencia
+    (mismo orden, posiciones crecientes). Es el nucleo del puntaje."""
+    i = 0
+    for tok in text_toks:
+        if i < len(entry_seq) and tok == entry_seq[i]:
+            i += 1
+    return i
 
 
-def _best_match(candidates, text, reverse=False):
-    """Mejor entrada cuyas partes aparecen en orden dentro de text.
-    Gana la coincidencia mas larga (la mas especifica)."""
+def _best_by_tokens(candidates, text):
+    """Mejor entrada por puntaje de tokens en orden dentro de text.
+
+    Puntaje: (tokens_coincidentes, -tokens_faltantes, es_combo, largo). Gana la
+    entrada que matchea MAS tokens (la mas especifica); a igualdad, la que menos
+    tokens deja sin matchear (la mas ajustada); y recien ahi se prefiere una
+    combinacion exterior/interior sobre un color simple. Asi:
+    - 'TIME GREY/BASALT BLACK+READ HA' (4 matcheados) le gana a 'TIME GREY/
+      BLACK' (3) cuando la factura dice 'Time Grey - Basalt Black+Red Hare Brown'.
+    - para 'Time Grey - Black' gana 'TIME GREY/BLACK' por dejar 0 faltantes.
+    - para 'Obsidian Black' (sin interior) gana el color simple OBLA sobre
+      'OBSIDIAN BLACK/BLACK', que dejaria un token sin matchear.
+    - cuando exterior e interior figuran repetidos en el texto (grilla + otra
+      copia) y empatan un color simple con el mismo par de palabras al reves
+      ('BLACK TIME GREY' vs 'TIME GREY/BLACK'), gana el combo, que es la
+      lectura correcta de dos campos de color separados.
+    Se exige un minimo de 2 tokens para evitar matches debiles.
+    """
+    text_toks = _tok_list(text)
     best = None
     for parts, name, code in candidates:
-        seq = list(reversed(parts)) if reverse else parts
-        total = _match_parts_in_order(seq, text)
-        if total is not None and (best is None or total > best[0]):
-            best = (total, name, code)
+        seq = _entry_token_seq(parts)
+        if not seq:
+            continue
+        matched = _subseq_len(seq, text_toks)
+        if matched < 2:
+            continue
+        is_combo = 1 if len(parts) > 1 else 0
+        key = (matched, -(len(seq) - matched), is_combo, len(seq))
+        if best is None or key > best[0]:
+            best = (key, name, code)
     return (best[1], best[2]) if best else None
 
 
 def match_color_byd(raw_text, desc_line=None):
     """Resuelve color BYD. Devuelve (color_name, color_code) o (None, None).
 
-    El color aparece en dos lugares y el ORDEN distingue combinaciones
-    opuestas ('PALLAS WHITE/BLACK' vs 'BLACK/PALLAS WHITE'):
-    - Linea de descripcion final, contigua y en orden exterior/interior:
-      'SHARK DMO GS PALLAS WHITE BLACK'.
-    - Grilla, con interior y exterior pegados y en orden invertido:
-      'BlackPallas White'.
+    La descripcion trae el color en orden exterior/interior
+    ('SEAL U DM-i Snow White - Black'), que es la fuente confiable y respeta
+    el orden que distingue combinaciones opuestas ('PALLAS WHITE/BLACK' vs
+    'BLACK/PALLAS WHITE'). Por eso se busca primero sobre la linea de
+    descripcion y, si no alcanza, sobre el texto completo (donde igual aparece
+    la descripcion en el mismo orden).
 
-    El texto completo contiene ambos ordenes a la vez, asi que no permite
-    desempatar: por eso la linea de descripcion se busca por separado y
-    primero, por ser la fuente mas confiable.
+    Combinaciones y colores simples compiten juntos: el puntaje (mas tokens,
+    menos faltantes) evita que un combo matcheado a medias le gane a su color
+    simple ('OBSIDIAN BLACK' resuelve OBLA, no OBSIDIAN BLACK/BLACK).
     """
-    combos, singles = [], []
-    for _, name, code in _byd_entries():
-        parts = _byd_parts(name)
-        if len(parts) > 1:
-            combos.append((parts, name, code))
-        elif parts:
-            singles.append((parts, name, code))
+    entries = [(_byd_parts(name), name, code) for _, name, code in _byd_entries()]
+    entries = [(parts, name, code) for parts, name, code in entries if parts]
 
-    norm_text = _norm_for_search(raw_text)
-
-    # 1. Linea de descripcion: exterior/interior en el orden de la planilla.
+    # 1. Linea de descripcion (mas confiable; fija el orden exterior/interior).
     if desc_line:
-        found = _best_match(combos, _norm_for_search(desc_line))
+        found = _best_by_tokens(entries, desc_line)
         if found:
             return found
 
-    # 2. Grilla: el mismo par pero invertido (interior pegado antes del exterior).
-    found = _best_match(combos, norm_text, reverse=True)
-    if found:
-        return found
-
-    # 3. Combinacion en orden directo en cualquier parte del texto.
-    found = _best_match(combos, norm_text)
-    if found:
-        return found
-
-    # 4. Un solo color (la planilla tambien tiene entradas sin interior).
-    return _best_match(singles, norm_text) or (None, None)
+    # 2. Texto completo, mismo orden.
+    return _best_by_tokens(entries, raw_text) or (None, None)
 
 
 def match_color_autopak(color_text):
