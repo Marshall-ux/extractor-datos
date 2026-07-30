@@ -186,7 +186,13 @@ def count_color_lookup(brand=None):
 
 def replace_model_lookup(brand, entries):
     with get_connection() as conn:
-        conn.execute("DELETE FROM model_lookup WHERE brand = ?", (brand,))
+        # brand None es el bucket unico de modelos (asi se cargan por seed): al
+        # reemplazar hay que vaciar toda la tabla. 'WHERE brand = NULL' no borra
+        # nada en SQLite, por eso se distingue el caso.
+        if brand is None:
+            conn.execute("DELETE FROM model_lookup")
+        else:
+            conn.execute("DELETE FROM model_lookup WHERE brand = ?", (brand,))
         conn.executemany(
             "INSERT INTO model_lookup (brand, model_name, model_code) VALUES (?, ?, ?)",
             [(brand, name, code) for name, code in entries],

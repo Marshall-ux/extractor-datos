@@ -11,6 +11,12 @@ import re
 from .base_extractor import BaseExtractor
 
 
+def _clean_motor(value):
+    """Normaliza un numero de motor: colapsa espacios internos a uno solo y
+    quita separadores sueltos ('/') al final."""
+    return re.sub(r"\s+", " ", value).strip().rstrip("/").strip()
+
+
 class BydExtractor(BaseExtractor):
     brand = "BYD"
 
@@ -23,19 +29,25 @@ class BydExtractor(BaseExtractor):
         r["vin"] = self.search(r"(L[A-Z0-9]{16})", text)
         r["interno"] = self.compute_interno(r["vin"])
 
-        # Motor naftero: BYD + 3 digitos + 2 letras + resto.
-        r["engine_number"] = self.search(r"(BYD\d{3}[A-Z]{2}\S+)", text)
+        # Motor naftero: BYD + 3 digitos + 2 letras + serial. El serial puede
+        # venir pegado ('BYD476ZQFT26000079') o separado por un espacio
+        # ('BYD472QA 826504695'); en ambos casos se toma completo.
+        naftero = self.search(r"(BYD\d{3}[A-Z]{2}\s*[A-Z0-9]+)", text)
 
-        # Motores electricos (uno o mas): TZ + 3 digitos + X + resto.
-        electric = re.findall(r"TZ\d{3}X\S*", text)
-        if electric:
-            if r["engine_number"]:
-                # Tiene motor naftero y electrico -> hibrido. Se conserva el naftero.
-                r["is_hybrid"] = True
-            else:
-                # Solo electrico: el numero de motor es el electrico.
-                r["engine_number"] = electric[0].rstrip("/")
-                r["is_electric"] = True
+        # Motores electricos (uno o mas): TZ + 3 digitos + X + letras + serial,
+        # que tambien puede ir separado por un espacio ('TZ180XSX 3P5118355').
+        electric = re.findall(r"TZ\d{3}X[A-Z]*\s*[A-Z0-9]+", text)
+
+        if naftero:
+            # Hay motor naftero (hibrido si ademas hay electrico). Se toma el
+            # naftero completo, que es el que corresponde extraer.
+            r["engine_number"] = _clean_motor(naftero)
+            r["is_hybrid"] = bool(electric)
+        elif electric:
+            # Solo electrico (Dolphin, Yuan): el numero de motor es el electrico
+            # completo.
+            r["engine_number"] = _clean_motor(electric[0])
+            r["is_electric"] = True
 
         # Anio: aparece pegado a la etiqueta "Modelo" del bloque de encabezados
         # ("2025Modelo"). BYD no emite certificado de fabrica: queda sin valor.
