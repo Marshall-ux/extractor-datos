@@ -68,22 +68,26 @@ def load_colors_from_file(filepath, brand):
     return len(entries)
 
 
+_MODEL_HEADERS = {"MODELO", "CODIGO", "CODIGO DE MODELO"}
+
+
 def read_model_xlsx(filepath):
     """Lee filas (model_name, model_code) de una planilla de modelos.
-    Convencion: columna A = codigo, columna B = nombre. Funcionalidad a futuro."""
+    Convencion: columna A = modelo (nombre), columna B = codigo."""
     wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
     ws = wb.active
     entries = []
     for row in ws.iter_rows(values_only=True):
         if not row or len(row) < 2:
             continue
-        code, name = row[0], row[1]
+        name, code = row[0], row[1]
         if code is None or name is None:
             continue
-        code_s, name_s = str(code).strip(), str(name).strip()
-        if not code_s or not name_s:
+        name_s, code_s = str(name).strip(), str(code).strip()
+        if not name_s or not code_s:
             continue
-        if normalize(code_s) in ("CODIGO", "CODIGO DE MODELO"):
+        # Saltar fila de encabezado ('Modelo' / 'Codigo').
+        if normalize(name_s) in _MODEL_HEADERS or normalize(code_s) in _MODEL_HEADERS:
             continue
         entries.append((name_s, code_s))
     wb.close()
