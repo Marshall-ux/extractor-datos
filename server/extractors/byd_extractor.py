@@ -24,7 +24,11 @@ class BydExtractor(BaseExtractor):
         r = self.base_result()
         text = self.text
 
-        r["model_code"] = self.search(r"(\d{8}-\d{2})", text)
+        # Codigo de modelo: 7 u 8 digitos + '-' + 2 digitos ('17982310-00'
+        # Shark, '2088085-00' Seal 5). En el texto puede venir con digitos
+        # pegados detras ('17982310-0011'), por eso solo se exige que no haya
+        # un digito pegado delante.
+        r["model_code"] = self.search(r"(?<!\d)(\d{7,8}-\d{2})", text)
         # El VIN viene concatenado con texto adyacente, sin limites de palabra.
         r["vin"] = self.search(r"(L[A-Z0-9]{16})", text)
         r["interno"] = self.compute_interno(r["vin"])
