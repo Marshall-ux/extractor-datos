@@ -78,6 +78,16 @@ export async function uploadColors(file, brand) {
   return handle(res)
 }
 
+// Guarda la planilla de colores editada en la app. rows: [[codigo, descripcion], ...]
+export async function saveColors(brand, rows) {
+  const res = await fetch(`${BASE}/lookup-tables/colors?brand=${brand}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rows }),
+  })
+  return handle(res)
+}
+
 export async function getModels(brand) {
   const url = brand ? `${BASE}/lookup-tables/models?brand=${brand}` : `${BASE}/lookup-tables/models`
   return handle(await fetch(url))
@@ -89,4 +99,28 @@ export async function uploadModels(file, brand) {
   if (brand) form.append('brand', brand)
   const res = await fetch(`${BASE}/lookup-tables/models`, { method: 'POST', body: form })
   return handle(res)
+}
+
+// Guarda la planilla de modelos editada en la app. rows: [[modelo, codigo], ...]
+export async function saveModels(rows) {
+  const res = await fetch(`${BASE}/lookup-tables/models`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rows }),
+  })
+  return handle(res)
+}
+
+// Descarga una planilla de busqueda tal como esta cargada.
+// path: 'colors/download?brand=AUTOPAK' | 'colors/download?brand=BYD' | 'models/download'
+export async function downloadLookupTable(path) {
+  const res = await fetch(`${BASE}/lookup-tables/${path}`)
+  if (!res.ok) {
+    throw new Error('No se pudo descargar la planilla')
+  }
+  const blob = await res.blob()
+  const disposition = res.headers.get('Content-Disposition') || ''
+  const match = disposition.match(/filename="?([^"]+)"?/)
+  const filename = match ? match[1] : 'planilla.xlsx'
+  return { blob, filename }
 }

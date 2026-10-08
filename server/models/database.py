@@ -164,10 +164,10 @@ def get_color_lookup(brand=None):
     with get_connection() as conn:
         if brand:
             rows = conn.execute(
-                "SELECT * FROM color_lookup WHERE brand = ?", (brand,)
+                "SELECT * FROM color_lookup WHERE brand = ? ORDER BY id", (brand,)
             ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM color_lookup").fetchall()
+            rows = conn.execute("SELECT * FROM color_lookup ORDER BY id").fetchall()
         return [dict(r) for r in rows]
 
 
@@ -203,8 +203,8 @@ def get_model_lookup(brand=None):
     with get_connection() as conn:
         if brand:
             rows = conn.execute(
-                "SELECT * FROM model_lookup WHERE brand = ?", (brand,)
+                "SELECT * FROM model_lookup WHERE brand = ? ORDER BY id", (brand,)
             ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM model_lookup").fetchall()
+            rows = conn.execute("SELECT * FROM model_lookup ORDER BY id").fetchall()
         return [dict(r) for r in rows]
