@@ -32,7 +32,7 @@ def normalize(text):
 
 # --------------------------- carga de planillas --------------------------- #
 
-def _read_color_xlsx(filepath):
+def read_color_xlsx(filepath):
     """Lee filas (codigo, descripcion) de una planilla de colores.
 
     Soporta ambos formatos:
@@ -63,7 +63,7 @@ def _read_color_xlsx(filepath):
 def load_colors_from_file(filepath, brand):
     """Carga una planilla en color_lookup bajo la marca indicada.
     brand: 'BYD' o 'AUTOPAK'. Devuelve cantidad cargada."""
-    entries = _read_color_xlsx(filepath)
+    entries = read_color_xlsx(filepath)
     database.replace_color_lookup(brand, entries)
     return len(entries)
 
@@ -92,6 +92,32 @@ def read_model_xlsx(filepath):
         entries.append((name_s, code_s))
     wb.close()
     return entries
+
+
+def build_lookup_xlsx(headers, rows, widths):
+    """Arma el .xlsx de una planilla de busqueda tal como esta cargada (mismo
+    orden). El formato (encabezado en fila 1, codigo/descripcion o
+    modelo/codigo en A/B) es el que leen read_color_xlsx y read_model_xlsx,
+    asi la planilla descargada se puede editar y volver a subir."""
+    import io
+
+    from openpyxl.styles import Font
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Hoja1"
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    for row in rows:
+        ws.append(list(row))
+    for col, width in enumerate(widths, start=1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = width
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
 
 
 def detect_table_brand(filename):
