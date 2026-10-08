@@ -1,5 +1,4 @@
-import LookupManager from '../components/LookupManager'
-import ModelManager from '../components/ModelManager'
+import PlanillasManager from '../components/PlanillasManager'
 
 export default function SettingsPage() {
   return (
@@ -9,13 +8,12 @@ export default function SettingsPage() {
           <span className="hero__eyebrow">⚙️ Configuración</span>
           <h1 className="hero__title" style={{ fontSize: '2.2rem' }}>Planillas de búsqueda</h1>
           <p className="hero__subtitle">
-            Mantené actualizados los códigos de color que usa la extracción automática.
+            Mantené actualizados los códigos de color y de modelo que usa la extracción automática.
           </p>
         </div>
       </section>
 
-      <LookupManager />
-      <ModelManager />
+      <PlanillasManager />
     </>
   )
 }
