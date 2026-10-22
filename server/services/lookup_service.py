@@ -280,7 +280,15 @@ def match_color_byd(raw_text, desc_line=None):
             return found
 
     # 2. Texto completo, mismo orden.
-    return _best_by_tokens(entries, raw_text) or (None, None)
+    return _best_by_tokens(entries, _split_glued(raw_text)) or (None, None)
+
+
+def _split_glued(text):
+    """Separa palabras que el PDF pega sin espacio, cortando donde una
+    minuscula va seguida de una mayuscula. En la grilla del Seal 5 los colores
+    exterior/interior y el VIN vienen juntos ('Time GreyBlackLC0C76C46V0047380')
+    y sin separar quedarian como un solo token."""
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text or "")
 
 
 def match_color_autopak(color_text):
