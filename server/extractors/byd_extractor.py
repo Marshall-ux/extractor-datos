@@ -29,8 +29,7 @@ class BydExtractor(BaseExtractor):
         # pegados detras ('17982310-0011'), por eso solo se exige que no haya
         # un digito pegado delante.
         r["model_code"] = self.search(r"(?<!\d)(\d{7,8}-\d{2})", text)
-        # El VIN viene concatenado con texto adyacente, sin limites de palabra.
-        r["vin"] = self.search(r"(L[A-Z0-9]{16})", text)
+        r["vin"] = self._vin(text)
         r["interno"] = self.compute_interno(r["vin"])
 
         # Motor naftero: BYD + 3 digitos + 2 letras + serial. El serial puede
@@ -60,6 +59,20 @@ class BydExtractor(BaseExtractor):
         # Linea de descripcion para derivar modelo y color (la final, mas limpia).
         r["_desc_line"] = self._description_line(text)
         return r
+
+    @staticmethod
+    def _vin(text):
+        """VIN de 17 caracteres que empieza con L.
+
+        Viene concatenado con texto adyacente, sin limites de palabra, y a veces
+        pegado al modelo ('SEAL5LC0C76C43V0048552' -> la 'L' de SEAL da un falso
+        VIN). Como la factura lo repite (columnas VIN y Nro Chasis), se toman
+        todos los candidatos solapados y se elige el que mas se repite.
+        """
+        candidates = re.findall(r"(?=(L[A-Z0-9]{16}))", text)
+        if not candidates:
+            return None
+        return max(candidates, key=candidates.count)
 
     @staticmethod
     def _description_line(text):
